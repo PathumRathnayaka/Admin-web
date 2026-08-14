@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
 import { adminApi } from '../services/api';
-import { ShopDetail, ShopStatus } from '../types/shop';
+import { ShopDetail, ShopFeatureKey, ShopStatus } from '../types/shop';
 import { navigate } from '../utils/routing';
 import { StatusMessage } from '../components/StatusMessage';
 
@@ -15,11 +15,19 @@ const STATUS_STYLES: Record<ShopStatus, string> = {
   SUSPENDED: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-200',
 };
 
+const FEATURE_TOGGLES: { key: ShopFeatureKey; label: string; description: string }[] = [
+  { key: 'marketplaceEnabled', label: 'Buy from Suppliers', description: 'Browsing the supplier marketplace' },
+  { key: 'buyRequestsEnabled', label: 'Buy Requests', description: "Posting to the shop's buy-request board" },
+  { key: 'orderGrnEnabled', label: 'Order GRN', description: 'Checking out marketplace orders into a GRN' },
+  { key: 'deliveryStatusEnabled', label: 'Delivery Status', description: 'Tracking marketplace order deliveries' },
+];
+
 export function ShopDetailPage({ tenantId }: ShopDetailPageProps) {
   const [shop, setShop] = useState<ShopDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [updatingFeature, setUpdatingFeature] = useState<ShopFeatureKey | null>(null);
 
   function load() {
     setLoading(true);
@@ -46,6 +54,19 @@ export function ShopDetailPage({ tenantId }: ShopDetailPageProps) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
       setUpdating(false);
+    }
+  }
+
+  async function toggleFeature(key: ShopFeatureKey, value: boolean) {
+    setUpdatingFeature(key);
+    setError('');
+    try {
+      const updated = await adminApi.updateShopFeatures(tenantId, { [key]: value });
+      setShop(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update feature');
+    } finally {
+      setUpdatingFeature(null);
     }
   }
 
@@ -102,6 +123,28 @@ export function ShopDetailPage({ tenantId }: ShopDetailPageProps) {
             <Field label="Created" value={new Date(shop.createdAt).toLocaleString()} />
           </div>
 
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Marketplace page access</h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Turning a page off hides it from this shop's POS web and blocks the underlying action.
+            </p>
+            <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+              {FEATURE_TOGGLES.map((toggle) => (
+                <div key={toggle.key} className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{toggle.label}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{toggle.description}</p>
+                  </div>
+                  <ToggleSwitch
+                    checked={shop[toggle.key]}
+                    disabled={updatingFeature === toggle.key}
+                    onChange={(value) => toggleFeature(toggle.key, value)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             {shop.status !== 'ACTIVE' && (
               <button
@@ -149,5 +192,32 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-1 text-sm text-slate-800 dark:text-slate-100">{value}</p>
     </div>
+  );
+}
+
+interface ToggleSwitchProps {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}
+
+function ToggleSwitch({ checked, disabled, onChange }: ToggleSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+        checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
   );
 }

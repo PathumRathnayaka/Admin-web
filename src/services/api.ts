@@ -1,5 +1,5 @@
 import { ApiResponse, LoginData } from '../types/auth';
-import { ShopDetail, ShopStatus, ShopSummary } from '../types/shop';
+import { ShopDetail, ShopFeaturesUpdate, ShopStatus, ShopSummary } from '../types/shop';
 import { env } from '../config/env';
 
 const AUTH_STORAGE_KEY = 'qaladmin.auth';
@@ -83,6 +83,11 @@ export const adminApi = {
     requestOne<ShopDetail>(`/api/auth/admin/shops/${tenantId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    }),
+  updateShopFeatures: (tenantId: string, features: ShopFeaturesUpdate) =>
+    requestOne<ShopDetail>(`/api/auth/admin/shops/${tenantId}/features`, {
+      method: 'PATCH',
+      body: JSON.stringify(features),
     }),
 };
 

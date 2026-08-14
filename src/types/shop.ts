@@ -10,6 +10,10 @@ export interface ShopSummary {
   city: string | null;
   district: string | null;
   status: ShopStatus;
+  marketplaceEnabled: boolean;
+  buyRequestsEnabled: boolean;
+  orderGrnEnabled: boolean;
+  deliveryStatusEnabled: boolean;
   ownerActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -22,3 +26,11 @@ export interface ShopDetail extends ShopSummary {
   ownerVerified: boolean;
   updatedAt: string;
 }
+
+export type ShopFeatureKey =
+  | 'marketplaceEnabled'
+  | 'buyRequestsEnabled'
+  | 'orderGrnEnabled'
+  | 'deliveryStatusEnabled';
+
+export type ShopFeaturesUpdate = Partial<Record<ShopFeatureKey, boolean>>;
